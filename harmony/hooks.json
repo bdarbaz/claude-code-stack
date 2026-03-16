@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "description": "Context7: Auto-fetch docs before using any framework/library",
+        "description": "[STACK] Context7: Auto-fetch docs before using any framework/library",
         "matcher": "Task|Agent",
         "hooks": [
           {
@@ -14,7 +14,7 @@
     ],
     "PostToolUse": [
       {
-        "description": "Auto lint/format/typecheck after file edits (Pilot-style)",
+        "description": "[STACK] Auto lint/format/typecheck after file edits (Pilot-style)",
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
@@ -24,7 +24,7 @@
         ]
       },
       {
-        "description": "TDD reminder: Check if test exists for edited file",
+        "description": "[STACK] TDD reminder: Check if test exists for edited file",
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
@@ -36,24 +36,36 @@
     ],
     "PreCompact": [
       {
-        "description": "Save state before compaction (Pilot + Compound style)",
+        "description": "[STACK] Save full project state before context compaction",
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '--- PRE-COMPACT STATE ---'; echo 'Active tasks:'; cat .planning/STATE.md 2>/dev/null | head -20 || echo 'No GSD state'; echo '---'; ls docs/plans/*.md 2>/dev/null | tail -5 || echo 'No Compound plans'; echo '--- END STATE ---'"
+            "command": "echo '=== STACK CONTEXT SNAPSHOT ==='; echo ''; echo '## Project State (GSD)'; cat .planning/STATE.md 2>/dev/null || echo 'No GSD state'; echo ''; echo '## Current Roadmap'; cat .planning/ROADMAP.md 2>/dev/null | head -40 || echo 'No roadmap'; echo ''; echo '## Active Requirements'; cat .planning/REQUIREMENTS.md 2>/dev/null | head -30 || echo 'No requirements'; echo ''; echo '## Recent Decisions (Compound)'; for f in $(ls -t docs/brainstorms/*.md 2>/dev/null | head -3); do echo \"--- $f ---\"; head -10 \"$f\"; done; echo ''; echo '## Recent Plans'; for f in $(ls -t docs/plans/*.md 2>/dev/null | head -3); do echo \"--- $f ---\"; head -10 \"$f\"; done; echo ''; echo '## Recent Solutions (Learnings)'; for f in $(ls -t docs/solutions/*.md 2>/dev/null | head -3); do echo \"--- $f ---\"; head -10 \"$f\"; done; echo ''; echo '## Git Recent'; git log --oneline -10 2>/dev/null || echo 'No git'; echo ''; echo '## Modified Files'; git diff --name-only 2>/dev/null | head -20 || echo 'Clean'; echo ''; echo '## CLAUDE.md Summary'; head -30 CLAUDE.md 2>/dev/null || echo 'No CLAUDE.md'; echo ''; echo '=== END SNAPSHOT ==='"
           }
         ]
       }
     ],
     "Stop": [
       {
-        "description": "Remind to compound knowledge before stopping",
+        "description": "[STACK] Auto-save continue-here before session ends",
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Reminder: Run /ce:compound to save learnings before ending session'"
+            "command": "echo 'Reminder: Run /ce:compound to save learnings. Session state is auto-preserved in .planning/ and docs/'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "description": "[STACK] Load project context at session start",
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f .planning/STATE.md ]; then echo '=== RESUMING PROJECT ==='; echo 'State:'; head -15 .planning/STATE.md; echo '---'; echo 'Recent git:'; git log --oneline -5 2>/dev/null; echo '=== Read CLAUDE.md and .planning/ for full context ==='; fi"
           }
         ]
       }

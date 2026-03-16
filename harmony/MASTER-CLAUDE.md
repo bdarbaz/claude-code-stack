@@ -3,6 +3,43 @@
 Bu proje, birden fazla Claude Code framework'unun birlikte, uyumlu calismasi icin konfigure edilmistir.
 Superpowers, GSD, Compound Engineering, ECC ve wshobson agents hep birlikte calisir.
 
+## CONTEXT PERSISTENCE - ASLA UNUTMA
+
+Context kaybini onleyen dosya sistemi. Bu dosyalar projenin HAFIZASIDIR:
+
+### Kaynak 1: GSD (.planning/ klasoru)
+| Dosya | Ne Iceriyor | Ne Zaman Olusur |
+|-------|-------------|-----------------|
+| `.planning/PROJECT.md` | Proje vizyonu, core value, kisitlamalar | `/gsd:new-project` |
+| `.planning/REQUIREMENTS.md` | ID'li gereksinimler, kabul kriterleri | `/gsd:discuss-phase` |
+| `.planning/ROADMAP.md` | Phase'ler, bagimlilklar, basari kriterleri | `/gsd:plan-phase` |
+| `.planning/STATE.md` | SUANKI POZISYON, aktif phase, kararlar, metrikler | Her GSD komutu gunceller |
+| `.planning/phases/N/CONTEXT.md` | Phase-spesifik context | Phase baslangicinda |
+| `.planning/phases/N/PLAN.md` | Phase plani, task'lar | `/gsd:plan-phase` |
+| `.planning/phases/N/RESEARCH.md` | Arastirma sonuclari | `/gsd:research-phase` |
+| `.planning/phases/N/SUMMARY.md` | Phase ozeti | Phase bitiminde |
+
+### Kaynak 2: Compound (docs/ klasoru)
+| Dosya | Ne Iceriyor | Ne Zaman Olusur |
+|-------|-------------|-----------------|
+| `docs/brainstorms/*.md` | Kesfedilen fikirler, kararlar | `/ce-brainstorm` |
+| `docs/plans/*.md` | Detayli implementation planlari (checkbox'lu) | `/ce-plan` |
+| `docs/solutions/*.md` | GECMIS COZUMLER, ogrenmeler | `/ce-compound` |
+
+### Kaynak 3: CLAUDE.md (proje root)
+Proje kurallari, tech stack, workflow. Claude her session'da ONCE bunu okur.
+
+### Kaynak 4: Git history
+`git log` ve `git diff` ile gecmis ve mevcut degisiklikler.
+
+### KURALLAR:
+1. **Session basinda**: CLAUDE.md + .planning/STATE.md + son 3 brainstorm/plan oku
+2. **Context %35 dolunca**: GSD context-monitor hook uyari verir
+3. **Compaction oncesi**: PreCompact hook TUM state'i snapshot alir
+4. **Session sonunda**: /ce-compound ile ogrenimleri kaydet
+5. **Yeni session'da**: Hook otomatik olarak STATE.md + git log gosterir
+6. **ASLA**: .planning/ ve docs/ klasorlerini SILME, bunlar projenin hafizasi
+
 ## SUPERPOWERS - HER ZAMAN AKTIF (ASLA ATLAMA)
 
 Superpowers skill'leri Claude'un temel davranis katmanidir. Bunlar OTOMATIK cagrilmali:
@@ -21,9 +58,9 @@ Superpowers skill'leri Claude'un temel davranis katmanidir. Bunlar OTOMATIK cagr
 | Code review isteyeceksen | `requesting-code-review` | Review formatinda hazirla |
 
 KURAL: Superpowers skill'leri DIGER tool'lardan ONCE calisir. Ornegin:
-- Feature gelistirme: superpowers:brainstorming → /ce-brainstorm → /ce-plan → superpowers:writing-plans → superpowers:test-driven-development → implement
-- Bug fix: superpowers:systematic-debugging → analiz → fix → superpowers:verification-before-completion
-- Paralel is: superpowers:dispatching-parallel-agents → subagent'lar → superpowers:verification-before-completion
+- Feature gelistirme: superpowers:brainstorming > /ce-brainstorm > /ce-plan > superpowers:writing-plans > superpowers:test-driven-development > implement
+- Bug fix: superpowers:systematic-debugging > analiz > fix > superpowers:verification-before-completion
+- Paralel is: superpowers:dispatching-parallel-agents > subagent'lar > superpowers:verification-before-completion
 
 Superpowers slash komutlari:
 - `/brainstorm` - Hizli brainstorm baslat
@@ -36,26 +73,28 @@ Her is bu siralamayla ilerler. Asama atlama.
 
 ### 1. YENI PROJE BASLANGICI
 ```
-superpowers:brainstorming → Projeyi kesfet
-GSD /gsd:new-project      → Proje dosyalarini olustur
-GSD /gsd:discuss-phase    → Gereksinimleri tart
-GSD /gsd:plan-phase       → Spec-driven plan olustur
+superpowers:brainstorming > Projeyi kesfet
+GSD /gsd:new-project      > Proje dosyalarini olustur (.planning/)
+GSD /gsd:discuss-phase    > Gereksinimleri tart (REQUIREMENTS.md)
+GSD /gsd:plan-phase       > Spec-driven plan olustur (ROADMAP.md)
 ```
+Bu adimda .planning/ klasoru olusur. Projenin HAFIZASI baslar.
 
 ### 2. FEATURE GELISTIRME (her feature icin)
 ```
-superpowers:brainstorming      → Fikri kesfet (ZORUNLU - atlama)
-Compound /ce-brainstorm        → Alternatifleri degerlendir, docs/brainstorms/'a kaydet
-superpowers:writing-plans      → Plan yaz
-Compound /ce-plan              → Detayli implementation plani (checkbox'lu)
+superpowers:brainstorming      > Fikri kesfet (ZORUNLU - atlama)
+Compound /ce-brainstorm        > Alternatifleri degerlendir, docs/brainstorms/'a KAYDET
+superpowers:writing-plans      > Plan yaz
+Compound /ce-plan              > Detayli implementation plani, docs/plans/'a KAYDET
 ```
+Bu adimda docs/brainstorms/ ve docs/plans/ olusur. Kararlar KALICI kaydedilir.
 
 ### 3. IMPLEMENTATION (her task icin)
 ```
-superpowers:test-driven-development → TDD mindset aktif (ZORUNLU)
-Context7 MCP                        → Kullanilacak library'nin docs'unu cek
-Pilot /spec (varsa)                 → Spec yaz
-Pilot /spec-implement (varsa)       → RED → GREEN → REFACTOR
+superpowers:test-driven-development > TDD mindset aktif (ZORUNLU)
+Context7 MCP                        > Kullanilacak library'nin docs'unu cek
+Pilot /spec (varsa)                 > Spec yaz
+Pilot /spec-implement (varsa)       > RED > GREEN > REFACTOR
 VEYA:
   Test dosyasini ONCE yaz (RED)
   Implementation yaz (GREEN)
@@ -64,80 +103,78 @@ VEYA:
 
 ### 4. REVIEW & COMPOUND
 ```
-superpowers:verification-before-completion → Is bitti demeden dogrula
-Compound /ce-review                        → Multi-agent code review
-Compound /ce-compound                      → Ogrenimleri kaydet
+superpowers:verification-before-completion > Is bitti demeden dogrula
+Compound /ce-review                        > Multi-agent code review
+Compound /ce-compound                      > Ogrenimleri docs/solutions/'a KAYDET
 ```
+ONEMLI: /ce-compound ASLA ATLANMAZ. Ogrenmeler gelecek session'lar icin kaydedilir.
 
 ### 5. VERIFICATION
 ```
-GSD /gsd:verify-work → Proje seviyesinde dogrulama
+GSD /gsd:verify-work > Proje seviyesinde dogrulama
 ```
 
 ### 6. BUG/HATA DURUMUNDA
 ```
-superpowers:systematic-debugging → ONCE analiz et, tahmin etme
-ECC deep-research skill          → Derinlemesine arastir
-Context7 MCP                     → Ilgili library docs'unu cek
-Fix → Test → superpowers:verification-before-completion
+superpowers:systematic-debugging > ONCE analiz et, tahmin etme
+ECC deep-research skill          > Derinlemesine arastir
+Context7 MCP                     > Ilgili library docs'unu cek
+Fix > Test > superpowers:verification-before-completion
 ```
 
 ## Skill Kullanimi
 
 ### Superpowers Skills (HER ZAMAN)
-- `brainstorming` → Creative is oncesi ZORUNLU
-- `writing-plans` → Plan yazarken
-- `systematic-debugging` → Hata/bug durumunda
-- `test-driven-development` → Implementation oncesi
-- `verification-before-completion` → Is bitiminde
-- `dispatching-parallel-agents` → Paralel isler icin
+- `brainstorming` > Creative is oncesi ZORUNLU
+- `writing-plans` > Plan yazarken
+- `systematic-debugging` > Hata/bug durumunda
+- `test-driven-development` > Implementation oncesi
+- `verification-before-completion` > Is bitiminde
+- `dispatching-parallel-agents` > Paralel isler icin
 
 ### ECC Skills (Domain-specific)
-- `deep-research` → Derinlemesine arastirma
-- `search-first` → Arastirma-first yaklasim
-- `frontend-patterns` → React/Next.js/UI
-- `api-design` → API tasarimi
-- `postgres-patterns` → DB patterns
-- `backend-patterns` → Backend
-- `security-review` → Guvenlik
-- `docker-patterns`, `deployment-patterns` → DevOps
+- `deep-research` > Derinlemesine arastirma
+- `search-first` > Arastirma-first yaklasim
+- `frontend-patterns` > React/Next.js/UI
+- `api-design` > API tasarimi
+- `postgres-patterns` > DB patterns
+- `backend-patterns` > Backend
+- `security-review` > Guvenlik
+- `docker-patterns`, `deployment-patterns` > DevOps
 
 ### wshobson Skills (Progressive disclosure)
-- `tdd-red`, `tdd-green`, `tdd-cycle` → TDD adim adim
-- `nextjs-app-router-patterns` → Next.js App Router
-- `react-state-management` → React state
-- `postgresql` → PostgreSQL derinlemesine
-- `full-stack-feature` → Fullstack feature akisi
+- `tdd-red`, `tdd-green`, `tdd-cycle` > TDD adim adim
+- `nextjs-app-router-patterns` > Next.js App Router
+- `react-state-management` > React state
+- `postgresql` > PostgreSQL derinlemesine
+- `full-stack-feature` > Fullstack feature akisi
 
 ## Agent Dispatch Kurallari
 
 ### Superpowers Agent
-- `superpowers:code-reviewer` → En kapsamli code review
+- `superpowers:code-reviewer` > En kapsamli code review
 
 ### ECC Agents
-- `architect` → Sistem tasarimi kararlari
-- `code-reviewer` → Code review
-- `database-reviewer` → DB review
-- `security-reviewer` → Security audit
-- `e2e-runner` → E2E test
-- `tdd-guide` → TDD yonlendirmesi
+- `architect` > Sistem tasarimi kararlari
+- `code-reviewer` > Code review
+- `database-reviewer` > DB review
+- `security-reviewer` > Security audit
+- `e2e-runner` > E2E test
+- `tdd-guide` > TDD yonlendirmesi
 
 ### Compound Agents (28)
-- `compound-engineering:review:*` → 15 review agent (architecture, security, performance, data-integrity...)
-- `compound-engineering:research:*` → 5 research agent (framework docs, git history, best practices...)
-- `compound-engineering:design:*` → 3 design agent (figma-design-sync, design-iterator...)
+- `compound-engineering:review:*` > 15 review agent
+- `compound-engineering:research:*` > 5 research agent
+- `compound-engineering:design:*` > 3 design agent
 
 ### wshobson Agents
-- `backend-architect` → Backend mimari
-- `database-architect`, `sql-pro` → DB
-- `tdd-orchestrator` → TDD orkestrasyon
-- `frontend-developer`, `mobile-developer` → UI
-- `security-auditor` → Guvenlik
+- `backend-architect`, `database-architect`, `sql-pro`
+- `tdd-orchestrator`, `frontend-developer`, `mobile-developer`
+- `security-auditor`, `deployment-engineer`
 
 ### GSD Agents (15)
-- `gsd-planner`, `gsd-executor`, `gsd-verifier` → Plan/execute/verify dongusu
-- `gsd-debugger` → Debug
-- `gsd-phase-researcher` → Arastirma
+- `gsd-planner`, `gsd-executor`, `gsd-verifier`
+- `gsd-debugger`, `gsd-phase-researcher`
 
 ## MCP Kullanimi
 
@@ -158,7 +195,8 @@ Fix → Test → superpowers:verification-before-completion
 5. **Verify-before-done**: superpowers:verification-before-completion ZORUNLU
 6. **Debug-systematic**: Hata = superpowers:systematic-debugging (tahmin etme)
 7. **Review zorunlu**: PR oncesi /ce-review
-8. **Knowledge compound**: Feature sonrasi /ce-compound
+8. **Knowledge compound**: Feature sonrasi /ce-compound (ASLA ATLAMA)
+9. **Context persist**: .planning/ ve docs/ ASLA silinmez
 
 ## Yasaklar
 
@@ -169,5 +207,7 @@ Fix → Test → superpowers:verification-before-completion
 - GSD olmadan projeye BASLAMA
 - Review olmadan PR ACMA
 - Bug'i tahmin ederek fix etmeye CALISMA (systematic-debugging kullan)
+- .planning/ veya docs/ klasorlerini SILME
+- /ce-compound ATLAMAK (ogrenmeler kaybolur)
 - `any` type KULLANMA (TypeScript)
 - Emoji icon KULLANMA (Lucide/Heroicons kullan)
