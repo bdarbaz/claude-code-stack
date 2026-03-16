@@ -51,8 +51,8 @@ Superpowers skill'leri Claude'un temel davranis katmanidir. Bunlar OTOMATIK cagr
 | Plan execute etme | `executing-plans` | Session'lara bol, review checkpoint |
 | Bug/hata/test failure | `systematic-debugging` | ONCE analiz, sonra fix (tahmin etme) |
 | Is bitti diyeceksen | `verification-before-completion` | ONCE dogrula, kanit goster |
-| 2+ bagimsiz task | `dispatching-parallel-agents` | Paralel subagent gonder |
-| Plan varsa implement | `subagent-driven-development` | Subagent'larla implement et |
+| 2+ bagimsiz task | `dispatching-parallel-agents` | Split-pane teammate olustur (subagent degil) |
+| Plan varsa implement | `subagent-driven-development` | Teammate'lerle implement et (split-pane) |
 | Feature/fix yazacaksan | `test-driven-development` | ONCE test, sonra kod |
 | Branch bitirdiysen | `finishing-a-development-branch` | Temizle, merge hazirla |
 | Code review isteyeceksen | `requesting-code-review` | Review formatinda hazirla |
@@ -60,12 +60,63 @@ Superpowers skill'leri Claude'un temel davranis katmanidir. Bunlar OTOMATIK cagr
 KURAL: Superpowers skill'leri DIGER tool'lardan ONCE calisir. Ornegin:
 - Feature gelistirme: superpowers:brainstorming > /ce-brainstorm > /ce-plan > superpowers:writing-plans > superpowers:test-driven-development > implement
 - Bug fix: superpowers:systematic-debugging > analiz > fix > superpowers:verification-before-completion
-- Paralel is: superpowers:dispatching-parallel-agents > subagent'lar > superpowers:verification-before-completion
+- Paralel is: Split-pane teammate olustur > teammate'ler paralel calisir > superpowers:verification-before-completion
 
 Superpowers slash komutlari:
 - `/brainstorm` - Hizli brainstorm baslat
 - `/write-plan` - Detayli plan yaz
 - `/execute-plan` - Plani calistir
+
+
+## AGENT TEAMS - SPLIT PANE (Anthropic Official Yontem)
+
+Paralel calisma gerektiginde SPLIT PANE TEAMMATE kullan, subagent DEGIL.
+
+### Hiyerarsi
+```
+Lead (sen)
+  |
+  +-- Split-pane Teammate 1 (gorunur, ayri pane)
+  |     +-- Kendi icinde subagent kullanabilir (gorevi bolerse)
+  |
+  +-- Split-pane Teammate 2 (gorunur, ayri pane)
+  |     +-- Kendi icinde subagent kullanabilir
+  |
+  +-- Split-pane Teammate N...
+```
+
+### KURALLAR:
+1. **2+ bagimsiz gorev varsa** > Split-pane teammate olustur (subagent DEGIL)
+2. **Teammate'ler tmux split pane** olarak acilir, gorunur, paralel calisir
+3. **Her teammate kendi dosyalarinda** calisir, dosya cakismasi OLMAZ
+4. **Teammate kendi icinde** subagent kullanabilir (karmasik gorevi bolerse)
+5. **Isi biten teammate** pane'ini hemen kapatir
+6. **Phase gecislerinde** git commit yap
+7. **Shift+Down** ile teammate'ler arasi gecis yap
+
+### NE ZAMAN TEAMMATE:
+- Frontend + Backend paralel gelistirme
+- 3+ dosya/modul ayni anda yazilacaksa
+- Test + Implementation paralel
+- Research + Implementation paralel
+
+### NE ZAMAN SUBAGENT (teammate icinden):
+- Tek bir teammate'in gorevi cok buyukse, kendi icinde bolebilir
+- Quick research dispatch (sonuc geri gelsin)
+- Code review dispatch
+
+### ORNEK:
+```
+"Bir agent team olustur, split pane modunda calistir.
+3 teammate:
+1) frontend - React component'leri yaz (src/components/)
+2) backend - API endpoint'leri yaz (src/api/)
+3) tests - Test dosyalarini yaz (src/__tests__/)
+
+Her teammate kendi dosyalarinda calissin.
+Isi biten teammate'in pane'ini hemen kapat.
+Phase tamamlaninca git commit yap."
+```
 
 ## Workflow Hierarchy (Zorunlu Akis)
 
@@ -211,3 +262,4 @@ Fix > Test > superpowers:verification-before-completion
 - /ce-compound ATLAMAK (ogrenmeler kaybolur)
 - `any` type KULLANMA (TypeScript)
 - Emoji icon KULLANMA (Lucide/Heroicons kullan)
+- Lead'den dogrudan subagent dispatch ETME (split-pane teammate kullan)

@@ -69,6 +69,231 @@ state_get_preset() {
 
 check_cmd() { command -v "$1" &>/dev/null && return 0 || return 1; }
 
+
+
+# ============================================================================
+# PURGE - Herseyi sil, sifirdan basla
+# ============================================================================
+
+do_purge() {
+    echo -e "\n${RED}${BOLD}================================================${NC}"
+    echo -e "${RED}${BOLD}  PURGE - Removing EVERYTHING${NC}"
+    echo -e "${RED}${BOLD}================================================${NC}\n"
+    
+    echo -e "${YELLOW}Bu komut Claude Code stack ile ilgili TUM ayarlari silecek:${NC}"
+    echo -e "  - Tum plugins (marketplace + installed)"
+    echo -e "  - Tum MCP servers"
+    echo -e "  - Tum skills, agents, commands, hooks"
+    echo -e "  - settings.json sifirlanacak"
+    echo -e "  - Cache temizlenecek"
+    echo -e ""
+    echo -e "${YELLOW}Claude Code kendisi SILINMEZ, sadece config sifirlanir.${NC}"
+    echo -e ""
+    read -p "Emin misin? (y/N): " confirm
+    if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+        echo "Iptal edildi."
+        return 0
+    fi
+    
+    log_step "1" "Uninstalling all marketplace plugins..."
+    # Remove all installed plugins
+    claude plugin list 2>/dev/null | grep -E "^\s+." | sed "s/.*❯ //" | sed "s/@.*//" | tr -d " " | while read -r p; do
+        if [ -n "$p" ]; then
+            local full=$(claude plugin list 2>/dev/null | grep "$p" | sed "s/.*❯ //" | awk "{print \$1}" | head -1)
+            if [ -n "$full" ]; then
+                claude plugin uninstall "$full" 2>/dev/null || true
+            fi
+        fi
+    done
+    log_success "Plugins uninstalled"
+    
+    log_step "2" "Removing all marketplaces..."
+    claude plugin marketplace list 2>/dev/null | grep -E "^\s+." | sed "s/.*❯ //" | awk "{print \$1}" | while read -r m; do
+        if [ -n "$m" ] && [ "$m" != "claude-plugins-official" ]; then
+            claude plugin marketplace remove "$m" 2>/dev/null || true
+        fi
+    done
+    log_success "Marketplaces removed (kept claude-plugins-official)"
+    
+    log_step "3" "Clearing skills, agents, commands, hooks..."
+    rm -rf "$CLAUDE_DIR/skills/"* 2>/dev/null || true
+    rm -rf "$CLAUDE_DIR/commands/"* 2>/dev/null || true
+    rm -rf "$CLAUDE_DIR/hooks/"* 2>/dev/null || true
+    find "$CLAUDE_DIR/agents/" -name "*.md" ! -name "team-manager.md" -delete 2>/dev/null || true
+    rm -rf "$CLAUDE_DIR/get-shit-done" 2>/dev/null || true
+    log_success "Cleared"
+    
+    log_step "4" "Resetting settings.json..."
+    cat > "$SETTINGS_FILE" << SJSON
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true
+  },
+  "skipDangerousModePermissionPrompt": true
+}
+SJSON
+    log_success "settings.json reset (base plugins + agent teams kept)"
+    
+    log_step "5" "Cleaning cache..."
+    rm -rf "$CACHE_DIR" 2>/dev/null || true
+    echo "{}" > "$STATE_FILE"
+    log_success "Cache cleaned"
+    
+    echo -e "\n${GREEN}${BOLD}PURGE complete!${NC}"
+    echo -e "Sistem temiz. Simdi istedigin preset'i kur:"
+    echo -e "  ${CYAN}./stack.sh install <preset>${NC}"
+    echo -e ""
+    echo -e "Veya sifirdan bootstrap (yeni makine icin):"
+    echo -e "  ${CYAN}./stack.sh bootstrap${NC}"
+    echo -e ""
+}
+
+# ============================================================================
+# BOOTSTRAP - Sifirdan her seyi kur (yeni makine)
+# ============================================================================
+
+do_bootstrap() {
+    echo -e "\n${BOLD}================================================${NC}"
+    echo -e "${BOLD}  BOOTSTRAP - Full System Setup${NC}"
+    echo -e "${BOLD}================================================${NC}\n"
+    
+    local os="unknown"
+    case "$(uname -s)" in
+        Darwin*) os="macos" ;;
+        Linux*)  os="linux" ;;
+    esac
+    log_info "OS: $os ($(uname -m))"
+    
+    # Step 1: Package manager
+    log_step "1" "Package manager..."
+    if [ "$os" = "macos" ]; then
+        if ! check_cmd brew; then
+            log_info "Installing Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+        fi
+        log_success "Homebrew ready"
+    elif [ "$os" = "linux" ]; then
+        if check_cmd apt-get; then
+            log_info "Updating apt..."
+            sudo apt-get update -qq 2>/dev/null || true
+        elif check_cmd dnf; then
+            log_info "dnf detected"
+        elif check_cmd pacman; then
+            log_info "pacman detected"
+        fi
+        log_success "Package manager ready"
+    fi
+    
+    # Step 2: Node.js
+    log_step "2" "Node.js..."
+    if ! check_cmd node; then
+        log_info "Installing Node.js..."
+        if [ "$os" = "macos" ]; then
+            brew install node
+        elif [ "$os" = "linux" ]; then
+            if check_cmd apt-get; then
+                curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - 2>/dev/null
+                sudo apt-get install -y nodejs 2>/dev/null
+            elif check_cmd dnf; then
+                sudo dnf install -y nodejs 2>/dev/null
+            elif check_cmd pacman; then
+                sudo pacman -S --noconfirm nodejs npm 2>/dev/null
+            fi
+        fi
+    fi
+    log_success "Node.js $(node --version 2>/dev/null || echo 'FAILED')"
+    
+    # Step 3: Git
+    log_step "3" "Git..."
+    if ! check_cmd git; then
+        log_info "Installing Git..."
+        if [ "$os" = "macos" ]; then
+            brew install git
+        elif [ "$os" = "linux" ]; then
+            if check_cmd apt-get; then
+                sudo apt-get install -y git 2>/dev/null
+            elif check_cmd dnf; then
+                sudo dnf install -y git 2>/dev/null
+            elif check_cmd pacman; then
+                sudo pacman -S --noconfirm git 2>/dev/null
+            fi
+        fi
+    fi
+    log_success "Git $(git --version 2>/dev/null | cut -d" " -f3 || echo 'FAILED')"
+    
+    # Step 4: tmux
+    log_step "4" "tmux..."
+    if ! check_cmd tmux; then
+        log_info "Installing tmux..."
+        if [ "$os" = "macos" ]; then
+            brew install tmux
+        elif [ "$os" = "linux" ]; then
+            if check_cmd apt-get; then
+                sudo apt-get install -y tmux 2>/dev/null
+            elif check_cmd dnf; then
+                sudo dnf install -y tmux 2>/dev/null
+            elif check_cmd pacman; then
+                sudo pacman -S --noconfirm tmux 2>/dev/null
+            fi
+        fi
+    fi
+    log_success "tmux $(tmux -V 2>/dev/null | cut -d" " -f2 || echo 'FAILED')"
+    
+    # Step 5: tmux mouse support
+    log_step "5" "tmux mouse..."
+    local tmux_conf="$HOME/.tmux.conf"
+    if ! grep -q "set -g mouse on" "$tmux_conf" 2>/dev/null; then
+        echo "" >> "$tmux_conf"
+        echo "# Claude Code Stack - mouse support" >> "$tmux_conf"
+        echo "set -g mouse on" >> "$tmux_conf"
+        log_success "Mouse enabled in ~/.tmux.conf"
+    else
+        log_success "Mouse already enabled"
+    fi
+    
+    # Step 6: Claude Code
+    log_step "6" "Claude Code..."
+    if ! check_cmd claude; then
+        log_info "Installing Claude Code..."
+        npm install -g @anthropic-ai/claude-code
+    fi
+    log_success "Claude Code $(claude --version 2>/dev/null | head -1 || echo 'FAILED')"
+    
+    # Step 7: Settings
+    log_step "7" "Claude Code settings..."
+    ensure_dirs
+    ensure_settings
+    node -e "
+        const fs=require('fs'), s=JSON.parse(fs.readFileSync('$SETTINGS_FILE','utf8'));
+        if(!s.env)s.env={};
+        s.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS='1';
+        if(!s.skipDangerousModePermissionPrompt) s.skipDangerousModePermissionPrompt=true;
+        fs.writeFileSync('$SETTINGS_FILE',JSON.stringify(s,null,2)+'\n');
+    "
+    log_success "Agent teams + skip-permissions enabled"
+    
+    # Step 8: Base plugins
+    log_step "8" "Base plugins..."
+    enable_plugins "superpowers" "context7" "code-review" "github" "skill-creator"
+    
+    echo -e "\n${GREEN}${BOLD}Bootstrap complete!${NC}"
+    echo -e ""
+    echo -e "${BOLD}Next:${NC}"
+    echo -e "  ${CYAN}./stack.sh install <preset>${NC}    Install a stack"
+    echo -e "  ${CYAN}./stack.sh list${NC}                See available presets"
+    echo -e ""
+    echo -e "${BOLD}Or login to Claude first:${NC}"
+    echo -e "  ${CYAN}claude login${NC}"
+    echo -e ""
+}
+
 # ============================================================================
 # CORE INSTALLERS
 # ============================================================================
@@ -979,6 +1204,85 @@ do_doctor() {
     echo -e "\n${GREEN}${BOLD}Doctor complete: $fixed fixes applied${NC}\n"
 }
 
+
+# ============================================================================
+# AGENT TEAM TEST
+# ============================================================================
+
+do_test_agents() {
+    echo -e "\n${BOLD}================================================${NC}"
+    echo -e "${BOLD}  AGENT TEAM TEST${NC}"
+    echo -e "${BOLD}================================================${NC}\n"
+    
+    local errors=0
+    
+    # Check 1: tmux
+    if check_cmd tmux; then
+        log_success "tmux installed ($(tmux -V))"
+    else
+        log_error "tmux NOT installed! Agent teams need tmux."
+        log_info "Install: brew install tmux"
+        errors=$((errors+1))
+    fi
+    
+    # Check 2: AGENT_TEAMS env var
+    local teams=$(node -e "const s=JSON.parse(require('fs').readFileSync('$SETTINGS_FILE','utf8'));console.log(s?.env?.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS||'missing')" 2>/dev/null)
+    if [ "$teams" = "1" ]; then
+        log_success "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1"
+    else
+        log_error "Agent teams NOT enabled in settings.json"
+        errors=$((errors+1))
+    fi
+    
+    # Check 3: Running inside tmux?
+    if [ -n "$TMUX" ]; then
+        log_success "Running inside tmux session"
+    else
+        log_warn "Not inside tmux. Agent teams need tmux."
+        log_info "Start with: tmux new -s myproject"
+    fi
+    
+    # Check 4: Claude Code version
+    local ver=$(claude --version 2>/dev/null | head -1 | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+    if [ -n "$ver" ]; then
+        local minor=$(echo "$ver" | cut -d. -f2)
+        if [ "$minor" -ge 1 ]; then
+            log_success "Claude Code $ver (agent teams supported)"
+        else
+            log_error "Claude Code $ver too old for agent teams (need 2.1.32+)"
+            errors=$((errors+1))
+        fi
+    fi
+    
+    # Check 5: team-manager agent exists
+    if [ -f "$CLAUDE_DIR/agents/team-manager.md" ]; then
+        log_success "team-manager agent installed"
+    else
+        log_warn "team-manager agent not found (optional)"
+    fi
+    
+    # Summary
+    echo ""
+    if [ $errors -gt 0 ]; then
+        echo -e "${RED}${BOLD}$errors errors - fix before using agent teams${NC}"
+        return 1
+    else
+        echo -e "${GREEN}${BOLD}Agent teams ready!${NC}"
+        echo -e ""
+        echo -e "${BOLD}How to use:${NC}"
+        echo -e "  1. tmux new -s myproject"
+        echo -e "  2. claude --dangerously-skip-permissions"
+        echo -e "  3. Tell Claude:"
+        echo -e "     ${CYAN}Bir agent team olustur, split pane modunda calistir.${NC}"
+        echo -e "     ${CYAN}3 teammate: frontend, backend, tests.${NC}"
+        echo -e "     ${CYAN}Isi biten teammate'in pane'ini hemen kapat.${NC}"
+        echo -e ""
+        echo -e "  Shift+Down = teammate arasi gecis"
+        echo -e "  Ctrl+B z   = pane zoom/unzoom"
+    fi
+    echo ""
+}
+
 # ============================================================================
 # UPDATE & CHECK
 # ============================================================================
@@ -1242,6 +1546,9 @@ do_list() {
     echo -e "  ./stack.sh backup             Backup current state"
     echo -e "  ./stack.sh restore <path>     Restore from backup"
     echo -e "  ./stack.sh doctor             Auto-fix problems"
+    echo -e "  ./stack.sh test-agents        Test split-pane agent teams"
+    echo -e "  ./stack.sh purge              NUKE everything, start clean"
+    echo -e "  ./stack.sh bootstrap          Full setup from scratch (new machine)"
     echo -e "  ./stack.sh list\n"
 }
 
@@ -1285,6 +1592,9 @@ main() {
         backup)     do_backup ;;
         restore)    do_restore "${2:-}" ;;
         doctor)     do_doctor ;;
+        test-agents) do_test_agents ;;
+        purge)      do_purge ;;
+        bootstrap)  do_bootstrap ;;
         list|help|"") do_list ;;
         *)          log_error "Unknown: $1"; do_list; exit 1 ;;
     esac
