@@ -1,0 +1,15 @@
+# Cache (downloaded repos - large)
+.cache/
+
+# State files (user-specific)
+.state.json
+
+# Backups (user-specific)
+backups/
+
+# Generated files (regenerated on install)
+CLAUDE.md.template
+QUICKREF.md
+
+# OS
+.DS_Store

@@ -1,0 +1,61 @@
+{
+  "stack_version": "1.0.0",
+  "claude_settings_path": "~/.claude/settings.json",
+  "layers": {
+    "01-gsd": {
+      "name": "GSD (Get Shit Done)",
+      "description": "Spec-driven project orchestration framework",
+      "repo": "https://github.com/agentic-labs/gsd",
+      "status": "not_installed",
+      "tier": 1
+    },
+    "02-compound": {
+      "name": "Compound Engineering",
+      "description": "80% planning, 20% execution engineering discipline",
+      "repo": "https://github.com/nicobailon/compound-engineering-plugin",
+      "status": "not_installed",
+      "tier": 1
+    },
+    "03-pilot": {
+      "name": "Pilot Shell",
+      "description": "TDD-enforced quality development environment",
+      "repo": "https://github.com/nicobailon/pilot-shell",
+      "status": "not_installed",
+      "tier": 1
+    },
+    "04-everything": {
+      "name": "Everything Claude Code",
+      "description": "94 skills, 18 agents, 48 commands, 24 MCPs",
+      "repo": "https://github.com/nicobailon/everything-claude-code",
+      "status": "not_installed",
+      "tier": 1
+    },
+    "05-ui": {
+      "name": "Super UI System",
+      "description": "UI/UX Pro Max + MCP design tools + component stacks",
+      "status": "not_installed",
+      "tier": 1
+    }
+  },
+  "mcps": {
+    "figma": { "status": "not_installed", "command": "claude mcp add --transport http figma https://mcp.figma.com/mcp" },
+    "playwright": { "status": "not_installed", "command": "npx @anthropic-ai/claude-code mcp add playwright -- npx @playwright/mcp@latest" },
+    "context7": { "status": "not_installed", "command": "claude mcp add context7 -- npx -y @upstash/context7-mcp@latest" },
+    "supabase": { "status": "not_installed", "command": "npx -y @anthropic-ai/claude-code mcp add supabase -- npx -y @nicobailon/supabase-mcp" },
+    "21st-dev": { "status": "not_installed", "command": "claude mcp add 21st-dev -- npx -y @nicobailon/21st-dev-mcp" },
+    "storybook": { "status": "not_installed", "command": "claude mcp add storybook-mcp --transport http http://localhost:6006/mcp" },
+    "github": { "status": "not_installed", "command": "claude mcp add github -- npx -y @nicobailon/github-mcp" },
+    "screenshot": { "status": "not_installed", "command": "claude mcp add screenshot -- npx -y @nicobailon/screenshot-mcp" }
+  },
+  "plugins": {
+    "recommended": [
+      "superpowers",
+      "frontend-design",
+      "context7",
+      "code-review",
+      "github",
+      "skill-creator",
+      "playwright"
+    ]
+  }
+}

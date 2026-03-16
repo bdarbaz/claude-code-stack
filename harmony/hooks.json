@@ -1,0 +1,62 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "description": "Context7: Auto-fetch docs before using any framework/library",
+        "matcher": "Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Reminder: Use Context7 MCP to fetch latest docs before implementing'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "description": "Auto lint/format/typecheck after file edits (Pilot-style)",
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; ext=\"${filepath##*.}\"; case \"$ext\" in ts|tsx|js|jsx) npx prettier --write \"$filepath\" 2>/dev/null; npx eslint --fix \"$filepath\" 2>/dev/null; npx tsc --noEmit 2>/dev/null | head -20 ;; py) ruff format \"$filepath\" 2>/dev/null; ruff check --fix \"$filepath\" 2>/dev/null; pyright \"$filepath\" 2>/dev/null | head -20 ;; swift) swift format \"$filepath\" 2>/dev/null ;; go) gofmt -w \"$filepath\" 2>/dev/null ;; dart) dart format \"$filepath\" 2>/dev/null ;; esac; echo 'Quality check complete'"
+          }
+        ]
+      },
+      {
+        "description": "TDD reminder: Check if test exists for edited file",
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if echo \"$filepath\" | grep -qvE '(\\.test\\.|_test\\.|spec\\.|__tests__|test_)'; then dir=$(dirname \"$filepath\"); base=$(basename \"$filepath\" | sed 's/\\.[^.]*$//'); found=0; for pattern in \"${dir}/${base}.test.*\" \"${dir}/${base}_test.*\" \"${dir}/${base}.spec.*\" \"${dir}/__tests__/${base}.*\"; do ls $pattern 2>/dev/null && found=1; done; if [ $found -eq 0 ]; then echo \"WARNING: No test file found for $filepath. TDD requires tests first!\"; fi; fi"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "description": "Save state before compaction (Pilot + Compound style)",
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '--- PRE-COMPACT STATE ---'; echo 'Active tasks:'; cat .planning/STATE.md 2>/dev/null | head -20 || echo 'No GSD state'; echo '---'; ls docs/plans/*.md 2>/dev/null | tail -5 || echo 'No Compound plans'; echo '--- END STATE ---'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "description": "Remind to compound knowledge before stopping",
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Reminder: Run /ce:compound to save learnings before ending session'"
+          }
+        ]
+      }
+    ]
+  }
+}
