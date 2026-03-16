@@ -125,3 +125,97 @@ Plugin scaffold + /s:new + /s:discuss + /s:plan + /s:build + context system + ho
 
 ### Phase 6: Integration Test
 27 komut chain test + split-pane + context persistence + session resume + bootstrap/purge
+
+---
+
+## EK KAYNAKLAR - DAHA ÖNCE ATLANMIŞ
+
+### Superpowers (obra/superpowers) - 88K stars ⭐⭐⭐
+ZATENKurulu ama skills'in ALT DOSYALARI atlanmış:
+- brainstorming/visual-companion.md (BROWSER TABANLI MOCKUP - gstack /browse ile birleşir)
+- brainstorming/spec-document-reviewer-prompt.md
+- brainstorming/scripts/ (brainstorm server)
+- systematic-debugging/defense-in-depth.md
+- systematic-debugging/root-cause-tracing.md
+- systematic-debugging/find-polluter.sh (TEST POLLUTION FINDER)
+- systematic-debugging/condition-based-waiting-example.ts
+- subagent-driven-development/implementer-prompt.md
+- subagent-driven-development/spec-reviewer-prompt.md
+- subagent-driven-development/code-quality-reviewer-prompt.md
+- writing-skills/ (TDD for documentation - kendi skill yazma rehberi)
+- finishing-a-development-branch (verify→options→execute→cleanup)
+- receiving-code-review (VERIFY before implementing - no performative agreement)
+
+### Claude Task Master (eyaltoledano) - 26K stars ⭐⭐
+- MCP server olarak çalışır (npx task-master-ai)
+- AI-driven task decomposition
+- PRD'den otomatik task oluşturma
+- Multi-model support (Anthropic, OpenAI, Google, Mistral)
+- Task dependency graph
+- BİZE LAZIM MI: GSD zaten task management yapıyor ama Task Master'ın MCP approach'u farklı
+
+### SuperClaude Framework - 21.5K stars ⭐⭐
+- Python package + pytest plugin
+- TypeScript agents (pm/, research/, index/)
+- confidence-check skill
+- Cognitive personas
+- BİZE LAZIM MI: Compound + Superpowers zaten bu ihtiyacı karşılıyor, ama confidence-check skill'i alınabilir
+
+### Ruflo (claude-code-flow) - 21K stars ⭐⭐
+- 37 komut (!!) - swarm, hive-mind, pair-programming, stream-chain, flow-nexus...
+- AgentDB (persistent memory + vector search)
+- SPARC methodology
+- Dual-mode execution
+- Skill-builder (kendi skill oluştur)
+- BİZE LAZIM MI: AgentDB (persistent memory) ve SPARC methodology değerli
+
+### K-Dense Scientific Skills - 15K stars ⭐
+- 260+ bilimsel skill (!!!)
+- Her major library için skill: pytorch, tensorflow, scikit-learn, pandas...
+- Research, finance, writing, visualization
+- BİZE LAZIM MI: Sadece data-eng preset'e birkaç skill (pandas, matplotlib, scikit-learn)
+
+### Ralph Claude Code - 8K stars ⭐
+- Autonomous development loop
+- Dual-condition exit gate
+- Circuit breaker (3 state)
+- Rate limiting, session continuity
+- Stuck loop detection
+- BİZE LAZIM MI: /s:auto komutu için autonomous loop pattern'i alınabilir
+
+### Claude Squad - 6K stars ⭐
+- Go binary - multi-terminal agent management
+- tmux integration (bizim zaten var)
+- Session persistence
+- BİZE LAZIM MI: Konsept olarak agent team manager'ımız bunu yapıyor
+
+### Container Use (Dagger) - 3.6K stars ⭐
+- Docker-based isolated agent environments
+- Her agent kendi container'ında
+- BİZE LAZIM MI: Microservices preset'e Docker isolation eklenebilir
+
+---
+
+## UNIFIED TOOL'A EKLENMESİ GEREKENLER (güncellenmiş)
+
+### Yeni skill'ler:
+- confidence-check (SuperClaude'dan) → her karar öncesi confidence puanı
+- persistent-memory (Ruflo AgentDB'den) → session arası hafıza
+- sparc-methodology (Ruflo'dan) → Specification, Pseudocode, Architecture, Refinement, Completion
+- autonomous-loop (Ralph'den) → circuit breaker + stuck detection
+- find-polluter (Superpowers'dan) → test pollution bulucu
+
+### Yeni komutlar:
+- /s:confidence → Karardan önce confidence check
+- /s:memory → Persistent memory query/save
+
+### Güncellenmiş agent sayısı:
+- 12 agent + 4 subagent template (değişmedi)
+
+### Güncellenmiş toplam:
+- 29 slash komut (27 + /s:confidence + /s:memory)
+- 12 agent + 4 subagent template
+- 6 hook
+- 8 rule set (7 + confidence-check)
+- Visual brainstorming system
+- 260+ scientific skill (opsiyonel, data-eng preset)
