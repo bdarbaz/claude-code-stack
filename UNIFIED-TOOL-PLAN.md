@@ -1,4 +1,4 @@
-# UNIFIED TOOL PLAN - "berkan-stack" (working name)
+# UNIFIED TOOL PLAN - "claude-stack" Plugin
 
 ## PROBLEM
 7+ ayrı tool kuruluyor, çakışıyor, farklı komut namespace'leri, farklı dosya yapıları.
@@ -6,169 +6,122 @@ GSD /gsd:plan, Compound /ce-plan, Superpowers /write-plan - 3 farklı "plan" kom
 
 ## ÇÖZÜM
 Tek bir Claude Code plugin: Tüm en iyi özellikleri birleştirir, tek namespace, tek workflow.
+MCPs ayrı kalır (context7, figma, playwright, supabase, github).
 
-## HER TOOL'DAN NE ALIYORUZ
+---
 
-### GSD'den:
-- [x] .planning/ dosya sistemi (PROJECT.md, REQUIREMENTS.md, ROADMAP.md, STATE.md)
-- [x] Context rot çözümü (context-monitor hook)
-- [x] Wave-based parallel execution
-- [x] Phase-based development
-- [x] discuss → plan → execute → verify döngüsü
+## CODEBASE DEEP DIVE - HER TOOL'DAN TAM LİSTE
 
-### Compound'dan:
-- [x] docs/brainstorms/, docs/plans/, docs/solutions/ (knowledge persistence)
-- [x] /brainstorm (alternatives exploration)
-- [x] /compound (knowledge saving - öğrenmeler birikir)
-- [x] Multi-agent code review (15 review perspective)
+### GSD (get-shit-done) - 41 Workflow, 16 Agent, 3 Hook
+**Workflows:**
+new-project, discuss-phase, plan-phase, execute-phase, verify-phase, verify-work, research-phase, discovery-phase, map-codebase, autonomous, quick (--discuss/--full/--research), do (freeform router), new-milestone, complete-milestone, audit-milestone, plan-milestone-gaps, add-phase, insert-phase, remove-phase, transition, add-todo, check-todos, add-tests, ui-phase, ui-review, pause-work, resume-project, diagnose-issues, execute-plan, profile-user, note, settings, stats, health, help, cleanup, update, node-repair
 
-### Superpowers'dan:
-- [x] brainstorming skill (creative exploration ZORUNLU)
-- [x] TDD skill (RED→GREEN→REFACTOR enforced)
-- [x] systematic-debugging (analiz-first, tahmin etme)
-- [x] verification-before-completion (kanıt tablosu)
-- [x] writing-plans / executing-plans (checkpoint'li)
+**Agents:**
+gsd-planner, gsd-executor, gsd-verifier, gsd-project-researcher, gsd-research-synthesizer, gsd-phase-researcher, gsd-roadmapper, gsd-plan-checker, gsd-codebase-mapper, gsd-debugger, gsd-integration-checker, gsd-nyquist-auditor, gsd-ui-researcher, gsd-ui-checker, gsd-ui-auditor, gsd-user-profiler
 
-### gstack'den:
-- [x] /ceo-review (10-star product thinking)
-- [x] /eng-review (architecture, edge cases, test matrix)
-- [x] /qa (browser QA - screenshot, health score)
-- [x] /browse (headless browser - Claude'a göz)
-- [x] /ship (sync+test+push+PR tek komut)
-- [x] /retro (retrospective)
-- [x] /document-release (doc update)
+**Hooks:** context-monitor, check-update, statusline
 
-### Uncodixfy'dan:
-- [x] Anti-AI-slop UI rules (tam liste)
-- [x] "Normal" UI enforcement (Linear/Raycast/Stripe style)
+**Dosya Sistemi:**
+.planning/PROJECT.md, REQUIREMENTS.md, ROADMAP.md, STATE.md
+.planning/phases/N/CONTEXT.md, PLAN.md, RESEARCH.md, DISCOVERY.md, SUMMARY.md, VALIDATION.md, UI-SPEC.md, UAT.md
+.planning/codebase/ (7 structured doc), .planning/quick/, .continue-here.md
 
-### ECC'den:
-- [x] Domain skills (frontend-patterns, api-design, postgres-patterns, etc.)
-- [x] Specialized agents (architect, code-reviewer, security-reviewer, etc.)
+---
 
-### wshobson'dan:
-- [x] TDD workflow skills (tdd-red, tdd-green, tdd-cycle)
-- [x] Progressive disclosure skills
-- [x] Specialized agents (backend-architect, database-architect, etc.)
+### Superpowers - 14 Skill, 3 Command, 1 Agent
+**Skills:**
+1. brainstorming (HARD-GATE: tasarım onayı olmadan kod yazma YOK, visual-companion.md, spec-document-reviewer-prompt.md, scripts/)
+2. writing-plans (bite-sized tasks, 2-5 min granularity, docs/superpowers/plans/)
+3. executing-plans (checkpoint'li session arası execution)
+4. test-driven-development (Iron Law: failing test olmadan prod code DELETE)
+5. systematic-debugging (4 phase: Root Cause → Hypothesis → Test → Fix, defense-in-depth.md, root-cause-tracing.md, find-polluter.sh)
+6. verification-before-completion (NO COMPLETION CLAIMS WITHOUT FRESH EVIDENCE)
+7. dispatching-parallel-agents (1 agent per problem domain)
+8. subagent-driven-development (task başına subagent + 2-stage review: spec compliance → code quality, implementer-prompt.md, spec-reviewer-prompt.md, code-quality-reviewer-prompt.md)
+9. writing-skills (TDD for documentation)
+10. finishing-a-development-branch (verify → options → execute → cleanup)
+11. using-git-worktrees (isolated workspace)
+12. requesting-code-review
+13. receiving-code-review (verify before implementing, NO performative agreement)
+14. using-superpowers (meta: nasıl kullan)
 
-## UNIFIED KOMUT YAPISI
+**Commands:** /brainstorm, /write-plan, /execute-plan
+**Agent:** code-reviewer (plan alignment + code quality + architecture + docs, 5-aspect review)
 
-Tek namespace: /s: (stack)
+---
 
-### Proje Başlangıç
-/s:new          → Yeni proje (GSD new-project + Compound setup)
-/s:discuss      → Gereksinimleri tartış (GSD discuss)
+### gstack - 10 Skill, Browser Binary
+**Skills:**
+1. /plan-ceo-review (3 mod: SCOPE EXPANSION, HOLD SCOPE, SCOPE REDUCTION)
+2. /plan-eng-review (architecture, data flow, diagrams, edge cases, test matrix)
+3. /review (SQL safety, LLM trust boundary, conditional side effects, Greptile triage, checklist.md)
+4. /ship (sync main, tests, VERSION bump, CHANGELOG, commit, push, PR)
+5. /qa (3 tier: Quick/Standard/Exhaustive, health score, before/after, atomic fix commits)
+6. /qa-only (report-only, no fixes)
+7. /browse (~100ms/command, screenshot, responsive, form test, dialog handle, annotated screenshots)
+8. /retro (per-person, praise + growth, trend tracking, persistent history)
+9. /document-release (README, ARCHITECTURE, CONTRIBUTING, CLAUDE.md, CHANGELOG, TODOS, VERSION)
+10. /setup-browser-cookies (Chrome, Arc, Brave, Edge, Comet import)
 
-### Planlama
-/s:brainstorm   → Creative keşif (Superpowers brainstorming + Compound brainstorm)
-/s:plan         → Detaylı plan (Superpowers writing-plans + GSD plan + Compound plan)
-/s:ceo-review   → Ürün perspektifi (gstack ceo-review)
-/s:eng-review   → Teknik perspektif (gstack eng-review)
+**Key Pattern:** AskUserQuestion format: Re-ground → Simplify → Recommend → Options
+**Browser:** Playwright-based, Bun compiled (~58MB), isolated per workspace
+**Conductor:** 10 parallel sessions
 
-### Implementation
-/s:build        → Plan'ı execute et (GSD execute + Superpowers TDD)
-/s:debug        → Sistematik debug (Superpowers systematic-debugging)
+---
 
-### Kalite
-/s:review       → Code review (Compound multi-agent + gstack review)
-/s:qa           → Browser QA (gstack qa)
-/s:browse       → Headless browser (gstack browse)
-/s:verify       → Doğrulama (Superpowers verification + GSD verify)
+### Compound Engineering - 5 Core + 20 Extra Skills, 28 Agents
+**Core:** ce-brainstorm, ce-plan, ce-work, ce-review, ce-compound
+**Extra:** agent-browser, brainstorming, changelog, compound-docs, create-agent-skills, deepen-plan, deploy-docs, dhh-rails-style, document-review, dspy-ruby, every-style-editor, feature-video, frontend-design, gemini-imagegen, git-worktree, heal-skill, lfg, orchestrating-swarms, proof, rclone, report-bug, reproduce-bug, resolve-pr-parallel, resolve_parallel, resolve_todo_parallel, setup, slfg, test-browser, test-xcode, triage, workflows-*
 
-### Ship & Learn
-/s:ship         → Tek komut deploy (gstack ship)
-/s:compound     → Öğrenimleri kaydet (Compound compound)
-/s:retro        → Retrospective (gstack retro)
-/s:docs         → Doc güncelle (gstack document-release)
+**28 Agents:** 15 review, 5 research, 3 design, 4 workflow, 1 docs
+**Dosya Sistemi:** docs/brainstorms/, docs/plans/, docs/solutions/
 
-### Utility
-/s:status       → Proje durumu (.planning/STATE.md)
-/s:progress     → İlerleme raporu
-/s:help         → Komut listesi
+---
 
-## DOSYA YAPISI
+### Uncodixfy - 194 Line Anti-AI-Slop
+33 "Keep It Normal" kategorisi, 24 "Hard No" kuralı, 10 dark + 10 light palette
+Renk seçim: 1) Projenin kendi → 2) Predefined → 3) ASLA random
 
-```
-.claude-plugin/
-├── plugin.json              # Plugin manifest
-├── SKILL.md                 # Ana skill dosyası (Uncodixfy rules dahil)
-├── skills/
-│   ├── new.md
-│   ├── discuss.md
-│   ├── brainstorm.md
-│   ├── plan.md
-│   ├── ceo-review.md
-│   ├── eng-review.md
-│   ├── build.md
-│   ├── debug.md
-│   ├── review.md
-│   ├── qa.md
-│   ├── browse.md
-│   ├── verify.md
-│   ├── ship.md
-│   ├── compound.md
-│   ├── retro.md
-│   ├── docs.md
-│   ├── status.md
-│   └── help.md
-├── agents/
-│   ├── architect.md
-│   ├── code-reviewer.md
-│   ├── security-reviewer.md
-│   ├── database-reviewer.md
-│   ├── tdd-guide.md
-│   ├── qa-engineer.md
-│   ├── frontend-dev.md
-│   ├── backend-dev.md
-│   └── ...
-├── rules/
-│   ├── uncodixfy.md         # Anti-AI-slop UI rules
-│   ├── tdd.md               # TDD enforcement rules
-│   ├── context-persist.md   # Context persistence rules
-│   └── quality.md           # Quality gates
-├── hooks/
-│   ├── session-start.js     # Load state on resume
-│   ├── context-monitor.js   # Context rot prevention
-│   ├── pre-compact.js       # Save state before compaction
-│   ├── post-edit.js         # Auto lint/format/typecheck
-│   └── tdd-check.js         # TDD enforcement
-├── templates/
-│   ├── project.md
-│   ├── requirements.md
-│   ├── roadmap.md
-│   ├── state.md
-│   └── claude-md/           # Per-preset CLAUDE.md templates
-└── browse/                  # gstack browser binary
-    └── (compiled on setup)
-```
+---
 
-## PHASE'LER
+## UNIFIED KOMUT YAPISI - /s: namespace (27 komut)
+
+### Proje Lifecycle (17)
+/s:new, /s:discuss, /s:brainstorm, /s:plan, /s:ceo-review, /s:eng-review, /s:build, /s:debug, /s:review, /s:qa, /s:qa-only, /s:browse, /s:verify, /s:ship, /s:compound, /s:retro, /s:docs
+
+### Utility (10)
+/s:auto, /s:quick, /s:do, /s:status, /s:resume, /s:pause, /s:note, /s:map, /s:cookies, /s:help
+
+## AGENTS (12 + 4 subagent templates)
+architect, code-reviewer, security-reviewer, database-reviewer, tdd-guide, qa-engineer, frontend-dev, backend-dev, mobile-dev, debugger, performance-eng, deployment-eng
+
+## HOOKS (6)
+session-start, context-monitor, pre-compact, post-edit, tdd-check, statusline
+
+## RULES (7)
+uncodixfy, tdd, verification, debugging, context-persist, ask-user, quality
+
+## VISUAL BRAINSTORMING
+Browser-based mockup/diagram (superpowers visual-companion + gstack browse birleştirilecek)
+
+---
+
+## 6 PHASE BUILD PLAN
 
 ### Phase 1: Foundation
-- Plugin scaffold (plugin.json, SKILL.md)
-- Core skills: /s:new, /s:discuss, /s:plan, /s:build
-- Context system (.planning/ + docs/)
-- Hooks (session-start, pre-compact, context-monitor)
-- Templates
+Plugin scaffold + /s:new + /s:discuss + /s:plan + /s:build + context system + hooks + templates + /s:status + /s:resume + /s:pause + /s:note
 
-### Phase 2: Quality
-- /s:brainstorm, /s:review, /s:verify, /s:debug
-- TDD enforcement
-- Uncodixfy rules
-- Agents (architect, code-reviewer, security, db, tdd, qa)
+### Phase 2: Quality & Review
+/s:brainstorm (+ visual) + /s:review + /s:verify + /s:debug + TDD + Uncodixfy + 12 agents + 4 subagent templates + /s:ceo-review + /s:eng-review
 
 ### Phase 3: Ship & Learn
-- /s:ship, /s:compound, /s:retro, /s:docs
-- /s:ceo-review, /s:eng-review
-- Knowledge persistence (docs/solutions/)
+/s:ship + /s:compound + /s:retro + /s:docs
 
 ### Phase 4: Browser & QA
-- /s:qa, /s:browse
-- Browser binary (gstack'den)
-- Screenshot verification
+/s:qa + /s:qa-only + /s:browse + /s:cookies + browser binary
 
-### Phase 5: Integration & Test
-- Tüm komutlar birlikte test
-- Tool chain testi
-- Split-pane agent team testi
-- Install/uninstall testi
+### Phase 5: Automation
+/s:auto + /s:quick + /s:do + /s:map + install script + README + marketplace
+
+### Phase 6: Integration Test
+27 komut chain test + split-pane + context persistence + session resume + bootstrap/purge
